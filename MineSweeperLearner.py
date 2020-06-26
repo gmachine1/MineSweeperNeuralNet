@@ -2,6 +2,8 @@ import numpy as np
 from MineSweeper import MineSweeper
 import time
 import os
+import pdb
+import matplotlib.pyplot as plt
 
 class MineSweeperLearner:
     def __init__(self, name, model):
@@ -23,56 +25,90 @@ class MineSweeperLearner:
             out[i + 2] = np.where(state == i, 1, 0)
         return out
 
-    def learnMineSweeper(self, nSamples, nBatches, nEpochsPerBatch, verbose=True):
+    def learnMineSweeper(self, nSamples, nBatches, nEpochsPerBatch, verbose=True, nhwcFormat=True):
         X = np.zeros((nSamples, 11, self.dim1, self.dim2))  # 11 channels: 1 for if has been revealed, 1 for is-on-board, 1 for each number
         X2 = np.zeros((nSamples, 1, self.dim1, self.dim2))
         y = np.zeros((nSamples, 1, self.dim1, self.dim2))
+
+        cellsRevealedTimeSeries = open("log/%s-%d" % (self.name, time.time()), "w")
+
         for i in range(nBatches):
-            cellsRevealed = 0
+            # pdb.set_trace()
+            totalCellsRevealed = 0
             gamesPlayed = 0
             gamesWon = 0
             samplesTaken = 0
             while samplesTaken < nSamples:
                 # initiate game
                 game = MineSweeper()
+                print("Starting new game")
+                # pdb.set_trace()
                 #pick middle on first selection. better than corner.
                 game.selectCell((int(self.dim1 / 2), int(self.dim2 / 2)))
                 while not (game.gameOver or samplesTaken == nSamples):
                     # get data input from game state
                     Xnow = self.getPredictorsFromGameState(game.state)
+                    # pdb.set_trace()
                     X[samplesTaken] = Xnow
                     X2now = np.array([np.where(Xnow[0] == 0, 1, 0)])
                     X2[samplesTaken] = X2now
+
                     # make probability predictions
-                    out = self.model.predict([np.array([Xnow]), np.array([X2now])])
+                    if nhwcFormat:
+                        out = self.model.predict([np.array([Xnow.transpose((1, 2, 0))]), np.array([X2now.transpose((1, 2, 0))])])
+                    else:
+                        out = self.model.predict([np.array([Xnow]), np.array([X2now])])
+
                     # choose best remaining cell
-                    orderedProbs = np.argsort(out[0][0]+Xnow[0], axis=None) #add Xnow[0] so that already selected cells aren't chosen
+                    # pdb.set_trace()
+                    orderedProbs = np.argsort((out[0, :, :, 0] if nhwcFormat else out[0][0]) + Xnow[0], axis=None) #add Xnow0 so that already selected cells aren't chosen
                     selected = orderedProbs[0]
                     selected1 = int(selected / self.dim2)
                     selected2 = selected % self.dim2
+                    # pdb.set_trace()
                     game.selectCell((selected1, selected2))
                     # find truth
                     truth = out
-                    truth[0, 0, selected1, selected2] = game.mines[selected1, selected2]
-                    y[samplesTaken] = truth[0]
+                    if nhwcFormat:
+                        truth[0, selected1, selected2, 0] = game.mines[selected1, selected2]
+                    else:
+                        truth[0, 0, selected1, selected2] = game.mines[selected1, selected2]
+                    y[samplesTaken] = truth[0].transpose([2, 0, 1]) if nhwcFormat else truth[0]
                     samplesTaken += 1
+
+                    #print("At sample %d of %d" % (samplesTaken, nSamples))
+                    #print("Cells revealed in current game: %d" % (self.totalCells - np.sum(np.isnan(game.state))))
+
                 if game.gameOver:
                     gamesPlayed += 1
-                    cellsRevealed += self.totalCells - np.sum(np.isnan(game.state))
+                    cellsRevealed = self.totalCells - np.sum(np.isnan(game.state))
+                    cellsRevealedTimeSeries.write(str(cellsRevealed))
+                    cellsRevealedTimeSeries.write('\n')
+                    totalCellsRevealed += cellsRevealed
                     if game.victory:
                         gamesWon += 1
+                    print("Cells revealed in current game: %d" % cellsRevealed)
+                    print("Total cells trained on (revealed): %d" % totalCellsRevealed)
+                    print("Games won: %d" % gamesWon)
+                    #pdb.set_trace()
+
+            cellsRevealedTimeSeries.flush()
+            meanCellsRevealed = -1
+            propGamesWon = -1
             if gamesPlayed > 0:
-                meanCellsRevealed = float(cellsRevealed) / gamesPlayed
+                meanCellsRevealed = float(totalCellsRevealed) / gamesPlayed
                 propGamesWon = float(gamesWon) / gamesPlayed
             if verbose:
                 print("Games played, batch " + str(i) + ": " + str(gamesPlayed))
                 print("Mean cells revealed, batch " + str(i) + ": " + str(meanCellsRevealed))
                 print("Proportion of games won, batch " + str(i) + ": " + str(propGamesWon))
             #train
-            self.model.fit([X, X2], y, batch_size=nSamples, epochs=nEpochsPerBatch)
+            self.model.fit([X.transpose((0, 2, 3, 1)), X2.transpose((0, 2, 3, 1))], y.transpose((0, 2, 3, 1)), batch_size=nSamples, epochs=nEpochsPerBatch)
             #save it every 100
             if (i+1) % 100 == 0:
                 self.model.save("trainedModels/" + self.name + ".h5")
+                pdb.set_trace()
+                print("Saved to %s" % (self.name + ".h5"))
 
     def testMe(self, nGames):
         cellsRevealed = 0

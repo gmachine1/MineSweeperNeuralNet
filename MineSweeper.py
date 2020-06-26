@@ -1,4 +1,6 @@
 import numpy as np
+import pdb
+
 
 # the "game board", with state
 class MineSweeper:
@@ -45,7 +47,11 @@ class MineSweeper:
     def clearEmptyCell(self, coordinates):
         x = coordinates[0]
         y = coordinates[1]
+        #print(np.sum(np.isnan(self.state)))
+        #print("clearing")
         self.state[x, y] = self.neighbors[x, y]
+        # import pdb
+        # pdb.set_trace()
         if self.state[x, y] == 0:
             for i in range(-1, 2):
                 if x + i >= 0 and x + i < self.dim1:
@@ -53,6 +59,8 @@ class MineSweeper:
                         if y + j >= 0 and y + j < self.dim2:
                             if np.isnan(self.state[x + i, y + j]):
                                 self.clearEmptyCell((x + i, y + j))
+        #print("cleared")
+        #print(np.sum(np.isnan(self.state)))
 
     def selectCell(self, coordinates):
         if self.mines[coordinates[0], coordinates[1]] > 0:  #condition always fails on first selection
@@ -61,7 +69,9 @@ class MineSweeper:
         else:
             if not self.initialized:    #runs after first selection
                 self.initialize(coordinates)
+            # pdb.set_trace()
             self.clearEmptyCell(coordinates)
+            # pdb.set_trace()
             if np.sum(np.isnan(self.state)) == self.nMines:
                 self.gameOver = True
                 self.victory = True

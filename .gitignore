@@ -1,1 +1,6 @@
 log/*
+venv/*
+__pycache__/*
+*.idea/*
+modelCode/__pycache__/*
+*.pyc

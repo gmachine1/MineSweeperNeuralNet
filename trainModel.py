@@ -37,6 +37,9 @@ print(nEpochsPerBatch)
 #launch background process
 if toDo == 1:
     os.system("nohup python trainModelBackground.py -o trainNew -m " + modelChoice + " -b " + str(nBatches) + " -s " + str(samples) + " -e " + str(nEpochsPerBatch) + " >log/" + modelChoice + ".out &")
+    print("nohup python trainModelBackground.py -o trainNew -m " + modelChoice + " -b " + str(nBatches) + " -s " + str(samples) + " -e " + str(nEpochsPerBatch) + " >log/" + modelChoice + ".out &")
+    import pdb
+    pdb.set_trace()
 elif toDo == 2:
     os.system("nohup python trainModelBackground.py -o continueTraining -m " + modelChoice + " -b " + str(nBatches) + " -s " + str(samples) + " -e " + str(nEpochsPerBatch) + " >log/" + modelChoice + ".out &")
 
