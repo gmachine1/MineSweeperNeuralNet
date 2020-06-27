@@ -44,4 +44,4 @@ elif toDo == 2:
     os.system("nohup python trainModelBackground.py -o continueTraining -m " + modelChoice + " -b " + str(nBatches) + " -s " + str(samples) + " -e " + str(nEpochsPerBatch) + " >log/" + modelChoice + ".out &")
 
 print("Model training output is being written to log/" + modelChoice + ".out")
-print("Model will be saved every 100 batches to trainedModels/" + modelChoice + ".h5")
+print("Model will be saved every 2 batches to trainedModels/" + modelChoice + ".h5")

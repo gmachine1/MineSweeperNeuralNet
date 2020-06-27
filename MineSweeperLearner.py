@@ -31,6 +31,8 @@ class MineSweeperLearner:
         y = np.zeros((nSamples, 1, self.dim1, self.dim2))
 
         cellsRevealedTimeSeries = open("log/%s-%d" % (self.name, time.time()), "w")
+        cellsRevealedTimeSeriesAvg = open("log/%s-batch-mean-%d" % (self.name, time.time()), "w")
+
 
         for i in range(nBatches):
             # pdb.set_trace()
@@ -41,7 +43,7 @@ class MineSweeperLearner:
             while samplesTaken < nSamples:
                 # initiate game
                 game = MineSweeper()
-                print("Starting new game")
+                #print("Starting new game")
                 # pdb.set_trace()
                 #pick middle on first selection. better than corner.
                 game.selectCell((int(self.dim1 / 2), int(self.dim2 / 2)))
@@ -82,32 +84,36 @@ class MineSweeperLearner:
                 if game.gameOver:
                     gamesPlayed += 1
                     cellsRevealed = self.totalCells - np.sum(np.isnan(game.state))
-                    cellsRevealedTimeSeries.write(str(cellsRevealed))
-                    cellsRevealedTimeSeries.write('\n')
+                    #cellsRevealedTimeSeries.write(str(cellsRevealed))
+                    #cellsRevealedTimeSeries.write('\n')
                     totalCellsRevealed += cellsRevealed
                     if game.victory:
                         gamesWon += 1
-                    print("Cells revealed in current game: %d" % cellsRevealed)
-                    print("Total cells trained on (revealed): %d" % totalCellsRevealed)
-                    print("Games won: %d" % gamesWon)
+                    #print("Cells revealed in current game: %d" % cellsRevealed)
+                    #print("Total cells trained on (revealed): %d" % totalCellsRevealed)
+                    #print("Samples taken: %d" % samplesTaken)
+                    #print("Games won: %d" % gamesWon)
                     #pdb.set_trace()
 
-            cellsRevealedTimeSeries.flush()
+            #cellsRevealedTimeSeries.flush()
             meanCellsRevealed = -1
             propGamesWon = -1
             if gamesPlayed > 0:
                 meanCellsRevealed = float(totalCellsRevealed) / gamesPlayed
                 propGamesWon = float(gamesWon) / gamesPlayed
+                cellsRevealedTimeSeriesAvg.write(str(meanCellsRevealed))
+                cellsRevealedTimeSeriesAvg.write("\n")
+                cellsRevealedTimeSeriesAvg.flush()
             if verbose:
                 print("Games played, batch " + str(i) + ": " + str(gamesPlayed))
                 print("Mean cells revealed, batch " + str(i) + ": " + str(meanCellsRevealed))
                 print("Proportion of games won, batch " + str(i) + ": " + str(propGamesWon))
             #train
             self.model.fit([X.transpose((0, 2, 3, 1)), X2.transpose((0, 2, 3, 1))], y.transpose((0, 2, 3, 1)), batch_size=nSamples, epochs=nEpochsPerBatch)
-            #save it every 100
-            if (i+1) % 100 == 0:
+            #save it every 2
+            if (i+1) % 2 == 0:
                 self.model.save("trainedModels/" + self.name + ".h5")
-                pdb.set_trace()
+                #pdb.set_trace()
                 print("Saved to %s" % (self.name + ".h5"))
 
     def testMe(self, nGames):
