@@ -1,3 +1,5 @@
+**该仓库被转移到中国版 github 码云 gitee 了。最新的版本在 https://gitee.com/gmachine1729/MineSweeperNeuralNet 。**
+
 # MineSweeperNeuralNet
 Teaching a neural network to play mine sweeper.
 
